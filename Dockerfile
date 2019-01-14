@@ -18,41 +18,38 @@ COPY ./badproxy /etc/apt/apt.conf.d/99fixbadproxy
 RUN apt-get update && \
     apt-get install -y --no-install-recommends --no-install-suggests \
     apt-utils unzip
-RUN apt-get -y upgrade -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold" && \
-    apt-get -y autoremove && \
-    apt-get clean && \
-    rm -rf /var/lib/apt/lists/*
+RUN apt-get -y upgrade -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold"
 RUN apt-get install -y -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold" qtdeclarative5-dev qml-module-qtquick-controls
 
 # Create a default user and home directory
-RUN useradd fastai && \
-    mkdir -p /home/fastai && \
-    chown -R fastai:fastai /home/fastai && \
-    addgroup fastai staff && \
-    echo 'fastai:fastai' | chpasswd
+#RUN useradd fastai && \
+#    mkdir -p /home/fastai && \
+#    chown -R fastai:fastai /home/fastai && \
+#    addgroup fastai staff && \
+#    echo 'fastai:fastai' | chpasswd
 
 # Install CUDA and CUDNN
-RUN add-apt-repository ppa:graphics-drivers/ppa -y && apt-get update
-RUN mkdir downloads && cd ~/downloads/ && \
-    wget --progress=bar:force $CUDA_DOWNLOAD_URL/$CUDA_REPO_DEB && \
-    dpkg -i $CUDA_REPO_DEB
-RUN apt-key adv --fetch-keys $CUDA_DOWNLOAD_URL/$CUDA_KEY && \
-    apt-get update && \
-    apt-get install -y cuda
-RUN wget --progress=bar:force $FASTAI_URL/files/$CUDNN_TARBALL && \
-    tar xf $CUDNN_TARBALL
-RUN cp cuda/include/*.* $CUDA_HOME/include/ && \
-    cp cuda/lib64/*.* $CUDA_HOME/lib64/
+#RUN add-apt-repository ppa:graphics-drivers/ppa -y && apt-get update
+#RUN mkdir downloads && cd ~/downloads/ && \
+#    wget --progress=bar:force $CUDA_DOWNLOAD_URL/$CUDA_REPO_DEB && \
+#    dpkg -i $CUDA_REPO_DEB
+#RUN apt-key adv --fetch-keys $CUDA_DOWNLOAD_URL/$CUDA_KEY && \
+#    apt-get update && \
+#    apt-get install -y cuda
+#RUN wget --progress=bar:force $FASTAI_URL/files/$CUDNN_TARBALL && \
+#    tar xf $CUDNN_TARBALL
+#RUN cp cuda/include/*.* $CUDA_HOME/include/ && \
+#    cp cuda/lib64/*.* $CUDA_HOME/lib64/
 
 # Install Miniconda3
-RUN wget --progress=bar:force $CONDA_DOWNLOAD_URL/$CONDA_INSTALLER && \
-    bash $CONDA_INSTALLER -b -p /home/fastai/miniconda3
-RUN cd /home/fastai && \
-    git clone $FASTAI_REPO && \
-    cd fastai/ && \
-    echo 'export PATH=~/miniconda3/bin:$PATH' >> ~/.bashrc && \
-    export PATH=~/miniconda3/bin:$PATH && \
-    source ~/.bashrc
+#RUN wget --progress=bar:force $CONDA_DOWNLOAD_URL/$CONDA_INSTALLER && \
+#    bash $CONDA_INSTALLER -b -p /home/fastai/miniconda3
+#RUN cd /home/fastai && \
+#    git clone $FASTAI_REPO && \
+#    cd fastai/ && \
+#    echo 'export PATH=~/miniconda3/bin:$PATH' >> ~/.bashrc && \
+#    export PATH=~/miniconda3/bin:$PATH && \
+#    source ~/.bashrc
 
 #RUN mkdir /home/data && cd data && \
 #    wget --progress=bar:force $FASTAI_URL/data/dogscats.zip && \
@@ -60,5 +57,10 @@ RUN cd /home/fastai && \
 
 #RUN cd /home/fastai/courses/dl1/ && ln -s ~/data ./ && \
 #    jupyter notebook 
+
+# Clean up
+#RUN  apt-get -y autoremove && \
+#     apt-get clean && \
+#     rm -rf /var/lib/apt/lists/*
 
 CMD ["bash"]
