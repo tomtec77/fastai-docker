@@ -1,17 +1,6 @@
-FROM ubuntu:xenial
+FROM nvidia/cuda:9.0-cudnn7-devel
 
 ARG DEBIAN_FRONTEND=noninteractive
-
-# Installation sources
-ENV CUDA_DOWNLOAD_URL http://developer.download.nvidia.com/compute/cuda/repos/ubuntu1604/x86_64/
-ENV CUDA_REPO_DEB cuda-repo-ubuntu1604_9.0.176-1_amd64.deb
-ENV CUDA_KEY 7fa2af80.pub
-ENV FASTAI_URL http://files.fast.ai/
-ENV CUDNN_TARBALL cudnn-9.1-linux-x64-v7.tgz
-ENV CUDA_HOME /usr/local/cuda/
-ENV CONDA_DOWNLOAD_URL https://repo.continuum.io/miniconda/
-ENV CONDA_INSTALLER Miniconda3-latest-Linux-x86_64.sh
-ENV FASTAI_REPO https://github.com/fastai/fastai.git
 
 # File badproxy adds a fix to an incorrect proxy configuration
 COPY ./badproxy /etc/apt/apt.conf.d/99fixbadproxy
@@ -19,59 +8,69 @@ COPY ./badproxy /etc/apt/apt.conf.d/99fixbadproxy
 # Update base system and install dependencies
 RUN apt-get update && \
     apt-get install -y --no-install-recommends --no-install-suggests \
-    apt-utils build-essential devscripts dh-make fakeroot lsb-release unzip
-RUN apt-get -y upgrade -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold"
-RUN apt-get install -y -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold" qtdeclarative5-dev qml-module-qtquick-controls
-
-# For nvidia-docker 2.0
-ENV DIST_DIR=/tmp/nvidia-docker2
-RUN mkdir -p $DIST_DIR
-COPY nvidia-docker $DIST_DIR/nvidia-docker
-COPY daemon.json $DIST_DIR/daemon.json
-
-WORKDIR $DIST_DIR
-COPY debian ./debian
-
-# Create a default user and home directory
-#RUN useradd fastai && \
-#    mkdir -p /home/fastai && \
-#    chown -R fastai:fastai /home/fastai && \
-#    addgroup fastai staff && \
-#    echo 'fastai:fastai' | chpasswd
-
-# Install CUDA and CUDNN
-#RUN add-apt-repository ppa:graphics-drivers/ppa -y && apt-get update
-#RUN mkdir downloads && cd ~/downloads/ && \
-#    wget --progress=bar:force $CUDA_DOWNLOAD_URL/$CUDA_REPO_DEB && \
-#    dpkg -i $CUDA_REPO_DEB
-#RUN apt-key adv --fetch-keys $CUDA_DOWNLOAD_URL/$CUDA_KEY && \
-#    apt-get update && \
-#    apt-get install -y cuda
-#RUN wget --progress=bar:force $FASTAI_URL/files/$CUDNN_TARBALL && \
-#    tar xf $CUDNN_TARBALL
-#RUN cp cuda/include/*.* $CUDA_HOME/include/ && \
-#    cp cuda/lib64/*.* $CUDA_HOME/lib64/
-
-# Install Miniconda3
-#RUN wget --progress=bar:force $CONDA_DOWNLOAD_URL/$CONDA_INSTALLER && \
-#    bash $CONDA_INSTALLER -b -p /home/fastai/miniconda3
-#RUN cd /home/fastai && \
-#    git clone $FASTAI_REPO && \
-#    cd fastai/ && \
-#    echo 'export PATH=~/miniconda3/bin:$PATH' >> ~/.bashrc && \
-#    export PATH=~/miniconda3/bin:$PATH && \
-#    source ~/.bashrc
-
-#RUN mkdir /home/data && cd data && \
-#    wget --progress=bar:force $FASTAI_URL/data/dogscats.zip && \
-#    unzip -q dogscats.zip
-
-#RUN cd /home/fastai/courses/dl1/ && ln -s ~/data ./ && \
-#    jupyter notebook 
+    apt-utils \
+    git \
+    unzip \
+    wget
+RUN apt-get -y dist-upgrade -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold"
+RUN apt-get install -y -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold" \
+    qtdeclarative5-dev \
+    qml-module-qtquick-controls
 
 # Clean up
-#RUN  apt-get -y autoremove && \
-#     apt-get clean && \
-#     rm -rf /var/lib/apt/lists/*
+RUN  apt-get -y autoremove && \
+     apt-get clean && \
+     rm -rf /var/lib/apt/lists/*
+
+# Create a default user and home directory
+RUN useradd fastai && \
+    mkdir -p /home/fastai && \
+    chown -R fastai:fastai /home/fastai && \
+    addgroup fastai staff && \
+    echo 'fastai:fastai' | chpasswd
+
+WORKDIR /home/fastai
+
+# Install Miniconda3
+ENV CONDA_DOWNLOAD_URL https://repo.anaconda.com/miniconda
+ENV CONDA_INSTALLER Miniconda3-latest-Linux-x86_64.sh
+
+RUN wget --progress=bar:force $CONDA_DOWNLOAD_URL/$CONDA_INSTALLER && \
+    bash $CONDA_INSTALLER -b -p /home/fastai/miniconda3 && \
+    echo 'export PATH=~/miniconda3/bin:$PATH' >> ~/.bashrc
+RUN echo 'conda activate fastai' >> ~/.bashrc
+
+# Clone the course repository
+ENV FASTAI_REPO https://github.com/fastai/fastai.git
+
+RUN git clone $FASTAI_REPO fastai-repo
+RUN cd fastai-repo && /home/fastai/miniconda3/bin/conda env update
+
+# Copy data files
+ENV FASTAI_URL http://files.fast.ai
+
+RUN cd ~ && mkdir data && cd data && \
+    wget --progress=bar:force $FASTAI_URL/data/dogscats.zip && \
+    unzip -q dogscats.zip
+
+RUN cd /home/fastai/fastai-repo/courses/dl1/ && ln -s ~/data ./
+
+# Jupyter notebook
+RUN echo ". /home/fastai/miniconda3/etc/profile.d/conda.sh" >> ~/.bashrc
+#RUN /bin/bash -c "/home/fastai/miniconda3/etc/profile.d/conda.sh"
+#RUN cd && /home/fastai/miniconda3/bin/conda activate fastai && \
+#    jupyter notebook --generate-config && \
+#    echo "c.NotebookApp.ip = '*'" >> ~/.jupyter/jupyter_notebook_config.py && \
+#    echo "c.NotebookApp.open_browser = False" >> ~/.jupyter/jupyter_notebook_config.py && \
+#    pip install ipywidgets && \
+#    jupyter nbextension enable --py widgetsnbextension --sys-prefix
+
+# Add Jupyterlab
+#RUN conda install -c conda-forge jupyterlab
+
+# Cleanup
+rm ~/$CONDA_INSTALLER
+
+EXPOSE 8888
 
 CMD ["bash"]
