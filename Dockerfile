@@ -1,6 +1,8 @@
 FROM ubuntu:xenial
 
 ARG DEBIAN_FRONTEND=noninteractive
+
+# Installation sources
 ENV CUDA_DOWNLOAD_URL http://developer.download.nvidia.com/compute/cuda/repos/ubuntu1604/x86_64/
 ENV CUDA_REPO_DEB cuda-repo-ubuntu1604_9.0.176-1_amd64.deb
 ENV CUDA_KEY 7fa2af80.pub
@@ -14,12 +16,21 @@ ENV FASTAI_REPO https://github.com/fastai/fastai.git
 # File badproxy adds a fix to an incorrect proxy configuration
 COPY ./badproxy /etc/apt/apt.conf.d/99fixbadproxy
 
-# Update base system
+# Update base system and install dependencies
 RUN apt-get update && \
     apt-get install -y --no-install-recommends --no-install-suggests \
-    apt-utils unzip
+    apt-utils build-essential devscripts dh-make fakeroot lsb-release unzip
 RUN apt-get -y upgrade -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold"
 RUN apt-get install -y -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold" qtdeclarative5-dev qml-module-qtquick-controls
+
+# For nvidia-docker 2.0
+ENV DIST_DIR=/tmp/nvidia-docker2
+RUN mkdir -p $DIST_DIR
+COPY nvidia-docker $DIST_DIR/nvidia-docker
+COPY daemon.json $DIST_DIR/daemon.json
+
+WORKDIR $DIST_DIR
+COPY debian ./debian
 
 # Create a default user and home directory
 #RUN useradd fastai && \
