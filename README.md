@@ -20,7 +20,17 @@ Build the image with
 sudo docker build . -t tomtec/fastai-docker
 ```
 
-To run the container:
+To run the container as user `fastai`, mapping port 8888 through to the host and
+directory `/home/user/data` to `/shared/data/` in the container,
 ``` bash
-sudo docker run -ti -p 8888:8888 --rm --runtime=nvidia --user fastai tomtec/fastai-docker
+sudo docker run -ti -p 8888:8888 --rm --runtime=nvidia -v /home/user/data:/shared/data --user fastai tomtec/fastai-docker
+```
+
+To give user `fastai` ownership of the shared volume, you need to do the 
+following on the host machine: create the directory to share, then change
+ownership using the **numeric** user and group IDs to match those of the `fastai`
+user in the container (which is 10000 as set in the `Dockerfile`):
+``` bash
+mkdir -p /home/user/data
+sudo chown -R 10000:10000 /home/user/data
 ```

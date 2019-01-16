@@ -116,11 +116,26 @@ if ! shopt -oq posix; then
   fi
 fi
 
+# Add a custom colour prompt
+CUSTOM_PROMPT="~"
+bldylw='\e[1;33m'
+bldgrn='\e[1;32m'
+bldblu='\e[1;34m'
+txtrst='\e[0m'
+print_before_the_prompt () {
+    printf "$bldylw[$bldgrn fastai@docker: $bldblu%s $bldylw] $txtrst" "${PWD/$HOME/$CUSTOM_PROMPT}"
+}
+PROMPT_COMMAND=print_before_the_prompt
+PS1='~> '
+
 # Path to conda executables
 export PATH=$HOME/miniconda3/bin:$PATH
 
-# Activate the fastai environment by default
-conda activate fastai
-
 # Enable conda activate script
 . $HOME/miniconda3/etc/profile.d/conda.sh
+
+echo "####"
+echo " Run script code_data_download.sh in the shared folder "
+echo " to download code repository, data and to set up the "
+echo " conda environment for the course. "
+echo "####" 
