@@ -23,40 +23,41 @@ RUN  apt-get -y autoremove && \
      rm -rf /var/lib/apt/lists/*
 
 # Create a default user and home directory
+ENV HOMEDIR /home/fastai
 RUN useradd fastai && \
-    mkdir -p /home/fastai && \
-    chown -R fastai:fastai /home/fastai && \
+    mkdir -p $HOMEDIR && \
     addgroup fastai staff && \
-    echo 'fastai:fastai' | chpasswd
+    echo 'fastai:fastai' | chpasswd && \
+    chown -R fastai:fastai $HOMEDIR
 
-WORKDIR /home/fastai
+COPY bashrc.sh $HOMEDIR/.bashrc
+
+WORKDIR $HOMEDIR
 
 # Install Miniconda3
 ENV CONDA_DOWNLOAD_URL https://repo.anaconda.com/miniconda
 ENV CONDA_INSTALLER Miniconda3-latest-Linux-x86_64.sh
 
 RUN wget --progress=bar:force $CONDA_DOWNLOAD_URL/$CONDA_INSTALLER && \
-    bash $CONDA_INSTALLER -b -p /home/fastai/miniconda3 && \
-    echo 'export PATH=~/miniconda3/bin:$PATH' >> ~/.bashrc
-RUN echo 'conda activate fastai' >> ~/.bashrc
+    bash $CONDA_INSTALLER -b -p $HOMEDIR/miniconda3
 
 # Clone the course repository
 ENV FASTAI_REPO https://github.com/fastai/fastai.git
 
 RUN git clone $FASTAI_REPO fastai-repo
-RUN cd fastai-repo && /home/fastai/miniconda3/bin/conda env update
+RUN cd fastai-repo && $HOMEDIR/miniconda3/bin/conda env update
 
 # Copy data files
 ENV FASTAI_URL http://files.fast.ai
 
-RUN cd ~ && mkdir data && cd data && \
+RUN cd $HOMEDIR && mkdir data && cd data && \
     wget --progress=bar:force $FASTAI_URL/data/dogscats.zip && \
     unzip -q dogscats.zip
 
-RUN cd /home/fastai/fastai-repo/courses/dl1/ && ln -s ~/data ./
+RUN cd $HOMEDIR/fastai-repo/courses/dl1/ && ln -s $HOMEDIR/data ./
 
 # Jupyter notebook
-RUN echo ". /home/fastai/miniconda3/etc/profile.d/conda.sh" >> ~/.bashrc
+#RUN echo ". /home/fastai/miniconda3/etc/profile.d/conda.sh" >> ~/.bashrc
 #RUN /bin/bash -c "/home/fastai/miniconda3/etc/profile.d/conda.sh"
 #RUN cd && /home/fastai/miniconda3/bin/conda activate fastai && \
 #    jupyter notebook --generate-config && \
@@ -69,8 +70,8 @@ RUN echo ". /home/fastai/miniconda3/etc/profile.d/conda.sh" >> ~/.bashrc
 #RUN conda install -c conda-forge jupyterlab
 
 # Cleanup
-rm ~/$CONDA_INSTALLER
+RUN rm $CONDA_INSTALLER
 
-EXPOSE 8888
+#EXPOSE 8888
 
 CMD ["bash"]
