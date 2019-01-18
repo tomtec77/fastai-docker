@@ -32,6 +32,7 @@ RUN useradd -d $HOME -s /bin/bash -u 10000 -U -p $NAME $NAME && \
     
 COPY bashrc.sh $HOME/.bashrc
 COPY code_data_download.sh $HOME/
+COPY environment.yml $HOME
 
 RUN chown -R $NAME:$NAME $HOME
 
@@ -45,12 +46,14 @@ ENV CONDA_INSTALLER Miniconda3-latest-Linux-x86_64.sh
 RUN wget --progress=bar:force $CONDA_DOWNLOAD_URL/$CONDA_INSTALLER && \
     bash $CONDA_INSTALLER -b -p $HOME/miniconda3
 
-# Map this directory to a directory in the host for permanent data storage
+# Set up the conda environment for the course
+RUN $HOME/miniconda3/bin/conda env update
+
 RUN mkdir $HOME/course
 VOLUME $HOME/course
 
 # Cleanup
-RUN rm $CONDA_INSTALLER
+RUN rm $CONDA_INSTALLER environment.yml
 
 EXPOSE 8888
 
