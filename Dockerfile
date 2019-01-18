@@ -28,11 +28,15 @@ ENV NAME fastai
 ENV HOME /home/$NAME
 RUN useradd -d $HOME -s /bin/bash -u 10000 -U -p $NAME $NAME && \
     mkdir $HOME && \
-    addgroup $NAME staff
+    addgroup $NAME staff && \
+    mkdir $HOME/.jupyter && \
+    mkdir $HOME/.cert
     
 COPY bashrc.sh $HOME/.bashrc
-COPY code_data_download.sh $HOME/
+COPY code_data_download.sh $HOME
 COPY environment.yml $HOME
+COPY cert $HOME/.cert
+COPY jupyter_notebook_config.py $HOME/.jupyter
 
 RUN chown -R $NAME:$NAME $HOME
 

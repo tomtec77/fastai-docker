@@ -31,6 +31,7 @@ ln -s $DIR/data ./
 
 # Install Jupyterlab
 cd $HOME
+bash miniconda3/etc/profile.d/conda.sh
 conda activate fastai
 conda install -c conda-forge jupyterlab
 
